@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Колесо Фортуны</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            color: white;
+        }
+        h1 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+            font-size: 1em;
+            gap: 10px;
+        }
+        .wheel-container {
+            position: relative;
+            width: 100%;
+            max-width: 320px;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto 25px;
+        }
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            border: 3px solid white;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+            transform: rotate(0deg);
+        }
+        .segment {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: bottom right;
+            left: 0;
+            top: 0;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0 8px 20px;
+            color: white;
+            font-weight: bold;
+            font-size: 11px;
+            text-align: center;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        .pointer {
+            position: absolute;
+            top: -16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-top: 24px solid #ff4757;
+            z-index: 10;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 15px;
+        }
+        .bet-controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+        .bet-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        .bet-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+        .spin-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 0 auto;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .spin-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+        .spin-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .result {
+            margin-top: 15px;
+            min-height: 26px;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        .multiplier {
+            color: #ffeb3b;
+        }
+        .prize { color: #ffd700; }
+        .empty, .oops, .miss { color: #ff6b6b; }
+        .bonus { color: #4ecdc4; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Колесо Фортуны 🔥</h1>
+        
+        <div class="game-info">
+            <div>💰 Баланс: <span id="balance">1000</span></div>
+            <div>🎯 Ставка: <span id="current-bet">0</span></div>
+        </div>
+        
+        <div class="wheel-container">
+            <div class="pointer"></div>
+            <div class="wheel" id="wheel"></div>
+        </div>
+        
+        <div class="controls">
+            <div class="bet-controls">
+                <button class="bet-btn" data-amount="10">10</button>
+                <button class="bet-btn" data-amount="50">50</button>
+                <button class="bet-btn" data-amount="100">100</button>
+                <button class="bet-btn" data-amount="500">500</button>
+                <button class="bet-btn" data-amount="1000">1000</button>
+            </div>
+            <button class="spin-btn" id="spin-btn" disabled>КРУТИТЬ!</button>
+        </div>
+        
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        const segments = [
+            { type: 'prize', text: 'ПРИЗ', color: '#FF6B6B', value: 1000 },
+            { type: 'empty', text: 'ПУСТО', color: '#4ECDC4', value: 0 },
+            { type: 'coins', text: '10 МОНЕТ', color: '#45B7D1', value: 10 },
+            { type: 'oops', text: 'УВЫ', color: '#96CEB4', value: 0 },
+            { type: 'coins', text: '100 МОНЕТ', color: '#FFEAA7', value: 100 },
+            { type: 'multiplier', text: 'Х2', color: '#DDA0DD', value: 2 },
+            { type: 'bonus', text: '+ПОПЫТКА', color: '#FFB347', value: 0 },
+            { type: 'miss', text: 'ПРОМАХ', color: '#FF6B9D', value: 0 }
+        ];
+
+        let balance = 1000;
+        let currentBet = 0;
+        let isSpinning = false;
+        let currentRotation = 0;
+
+        const wheelEl = document.getElementById('wheel');
+        const balanceEl = document.getElementById('balance');
+        const currentBetEl = document.getElementById('current-bet');
+        const spinBtn = document.getElementById('spin-btn');
+        const resultEl = document.getElementById('result');
+        const betButtons = document.querySelectorAll('.bet-btn');
+
+        function createWheel() {
+            const segAngle = 360 / segments.length;
+            wheelEl.innerHTML = '';
+            segments.forEach((seg, i) => {
+                const el = document.createElement('div');
+                el.className = 'segment';
+                el.style.backgroundColor = seg.color;
+                el.style.transform = `rotate(${i * segAngle}deg)`;
+                el.style.clipPath = `polygon(0 0, 100% 0, 0 100%)`;
+                el.textContent = seg.text;
+                if (seg.type === 'prize') el.classList.add('prize');
+                if (['empty', 'oops', 'miss'].includes(seg.type)) el.classList.add('empty');
+                if (seg.type === 'bonus') el.classList.add('bonus');
+                wheelEl.appendChild(el);
+            });
+            wheelEl.style.transform = `rotate(${currentRotation}deg)`;
+        }
+
+        function updateUI() {
+            balanceEl.textContent = balance;
+            currentBetEl.textContent = currentBet;
+            spinBtn.disabled = currentBet === 0 || balance < currentBet || isSpinning;
+        }
+
+        betButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (isSpinning) return;
+                const amt = +btn.dataset.amount;
+                if (balance >= amt) {
+                    currentBet = amt;
+                    updateUI();
+                }
+            });
+        });
+
+        spinBtn.addEventListener('click', () => {
+            if (currentBet === 0 || balance < currentBet || isSpinning) return;
+
+            isSpinning = true;
+            spinBtn.disabled = true;
+            resultEl.textContent = 'Крутим...';
+            balance -= currentBet;
+            updateUI();
+
+            const randIndex = Math.floor(Math.random() * segments.length);
+            const seg = segments[randIndex];
+            const segAngle = 360 / segments.length;
+            const extraRot = 360 * 5;
+            const target = randIndex * segAngle + segAngle / 2;
+            currentRotation += extraRot + (360 - (target % 360));
+            
+            wheelEl.style.transform = `rotate(${currentRotation}deg)`;
+
+            setTimeout(() => {
+                let msg = '';
+                let win = 0;
+                switch(seg.type) {
+                    case 'prize': win = 1000; msg = `🎉 ДЖЕКПОТ! Вы выиграли <span class="multiplier">${win}</span> монет!`; break;
+                    case 'coins': win = seg.value; msg = `💰 Вы выиграли <span class="multiplier">${win}</span> монет!`; break;
+                    case 'multiplier': win = currentBet * seg.value; msg = `✨ Умножение! Вы выиграли <span class="multiplier">${win}</span> монет!`; break;
+                    case 'bonus': msg = `🎁 БОНУС! +1 бесплатная попытка!`; break;
+                    default: msg = `😞 ${seg.text}! Ничего не выиграно.`;
+                }
+                balance += win;
+                currentBet = 0;
+                isSpinning = false;
+                updateUI();
+                resultEl.innerHTML = msg;
+            }, 4000);
+        });
+
+        createWheel();
+        updateUI();
+    </script>
+</body>
+</html>
+

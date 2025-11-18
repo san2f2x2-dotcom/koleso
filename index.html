@@ -144,12 +144,9 @@
             font-size: 1.1em;
             font-weight: bold;
         }
-        .multiplier {
-            color: #ffeb3b;
-        }
-        .prize { color: #ffd700; }
-        .empty, .oops, .miss { color: #ff6b6b; }
-        .bonus { color: #4ecdc4; }
+        .win { color: #4CAF50; }
+        .loss { color: #F44336; }
+        .neutral { color: #FFEB3B; }
     </style>
 </head>
 <body>
@@ -171,8 +168,8 @@
                 <button class="bet-btn" data-amount="10">10</button>
                 <button class="bet-btn" data-amount="50">50</button>
                 <button class="bet-btn" data-amount="100">100</button>
+                <button class="bet-btn" data-amount="200">200</button>
                 <button class="bet-btn" data-amount="500">500</button>
-                <button class="bet-btn" data-amount="1000">1000</button>
             </div>
             <button class="spin-btn" id="spin-btn" disabled>КРУТИТЬ!</button>
         </div>
@@ -182,14 +179,14 @@
 
     <script>
         const segments = [
-            { type: 'prize', text: 'ПРИЗ', color: '#FF6B6B', value: 1000 },
-            { type: 'empty', text: 'ПУСТО', color: '#4ECDC4', value: 0 },
-            { type: 'coins', text: '10 МОНЕТ', color: '#45B7D1', value: 10 },
-            { type: 'oops', text: 'УВЫ', color: '#96CEB4', value: 0 },
-            { type: 'coins', text: '100 МОНЕТ', color: '#FFEAA7', value: 100 },
-            { type: 'multiplier', text: 'Х2', color: '#DDA0DD', value: 2 },
-            { type: 'bonus', text: '+ПОПЫТКА', color: '#FFB347', value: 0 },
-            { type: 'miss', text: 'ПРОМАХ', color: '#FF6B9D', value: 0 }
+            { text: '+50 МОНЕТ', value: 50, color: '#4CAF50' },
+            { text: 'ПУСТО', value: 0, color: '#9E9E9E' },
+            { text: '10 МОНЕТ', value: 10, color: '#2196F3' },
+            { text: 'УВЫ', value: 0, color: '#FF9800' },
+            { text: '+100 МОНЕТ', value: 100, color: '#9C27B0' },
+            { text: '+200 МОНЕТ', value: 200, color: '#E91E63' },
+            { text: '-500', value: -500, color: '#F44336' },
+            { text: 'ПРОМАХ', value: 0, color: '#607D8B' }
         ];
 
         let balance = 1000;
@@ -214,9 +211,6 @@
                 el.style.transform = `rotate(${i * segAngle}deg)`;
                 el.style.clipPath = `polygon(0 0, 100% 0, 0 100%)`;
                 el.textContent = seg.text;
-                if (seg.type === 'prize') el.classList.add('prize');
-                if (['empty', 'oops', 'miss'].includes(seg.type)) el.classList.add('empty');
-                if (seg.type === 'bonus') el.classList.add('bonus');
                 wheelEl.appendChild(el);
             });
             wheelEl.style.transform = `rotate(${currentRotation}deg)`;
@@ -258,16 +252,19 @@
             wheelEl.style.transform = `rotate(${currentRotation}deg)`;
 
             setTimeout(() => {
-                let msg = '';
-                let win = 0;
-                switch(seg.type) {
-                    case 'prize': win = 1000; msg = `🎉 ДЖЕКПОТ! Вы выиграли <span class="multiplier">${win}</span> монет!`; break;
-                    case 'coins': win = seg.value; msg = `💰 Вы выиграли <span class="multiplier">${win}</span> монет!`; break;
-                    case 'multiplier': win = currentBet * seg.value; msg = `✨ Умножение! Вы выиграли <span class="multiplier">${win}</span> монет!`; break;
-                    case 'bonus': msg = `🎁 БОНУС! +1 бесплатная попытка!`; break;
-                    default: msg = `😞 ${seg.text}! Ничего не выиграно.`;
-                }
+                const win = seg.value;
                 balance += win;
+                
+                let msg = '';
+                let cls = '';
+                if (win > 0) {
+                    msg = `💰 Вы выиграли <span class="win">${win}</span> монет!`;
+                } else if (win < 0) {
+                    msg = `💸 Вы потеряли <span class="loss">${Math.abs(win)}</span> монет!`;
+                } else {
+                    msg = `😞 ${seg.text}! Ничего не выиграно.`;
+                }
+                
                 currentBet = 0;
                 isSpinning = false;
                 updateUI();
